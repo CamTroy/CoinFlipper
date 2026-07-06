@@ -57,9 +57,11 @@ class MainActivity : ComponentActivity() {
 fun WearApp() {
     val context = LocalContext.current
     var isFlipping: Boolean by remember { mutableStateOf(false) }
+    var isFlipped: Boolean by remember { mutableStateOf(false) }
     val flippingTexts = remember {
         try {
-            context.assets.open("flippingtext.csv").bufferedReader().use { it.readText() }.split(",")
+            context.assets.open("flippingtext.csv").bufferedReader().use { it.readText() }
+                .split(",")
         } catch (e: Exception) {
             listOf("Flipping...")
         }
@@ -77,7 +79,7 @@ fun WearApp() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    if (!isFlipping) {
+                    if (!isFlipping && !isFlipped) {
                         Button(
                             modifier = Modifier.size(100.dp),
                             onClick = {
@@ -99,6 +101,28 @@ fun WearApp() {
                             },
                             shape = ShapeDefaults.ExtraLarge,
                         )
+                    } else if (isFlipped && !isFlipping) {
+
+                        val result = (0..1).random()
+                        var resultText by remember { mutableStateOf("") }
+
+                        LaunchedEffect(isFlipped) {
+                            if (isFlipped) {
+                                when (result) {
+                                    0 -> {
+                                        resultText = "Heads"
+                                    }
+
+                                    1 -> {
+                                        resultText = "Tails"
+                                    }
+                                }
+                                delay(5000.milliseconds)
+                                isFlipped = false
+                            }
+                        }
+
+                        Text(text = resultText, style = MaterialTheme.typography.bodyLarge)
                     } else {
                         var progress by remember { mutableFloatStateOf(0f) }
 
@@ -113,6 +137,7 @@ fun WearApp() {
                                 }
                                 delay(500.milliseconds)
                                 isFlipping = false
+                                isFlipped = true
                             }
                         }
 
