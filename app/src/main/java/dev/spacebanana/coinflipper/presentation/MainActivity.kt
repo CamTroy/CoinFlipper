@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.GenericShape
@@ -26,9 +27,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
@@ -65,22 +68,23 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun WearApp(greetingName: String) {
+    val context = LocalContext.current
     var isFlipping: Boolean by remember { mutableStateOf(false) }
-    var flipText: String by remember { mutableStateOf("Thinking...") }
-    val flipTextOptions = listOf(
-        "Calculating...",
-        "Flipping...",
-        "Thinking...",
-        "Analyzing probabilities...",
-        "Checking parallel universes...",
-    )
+    val flippingTexts = remember {
+        try {
+            context.assets.open("flippingtext.csv").bufferedReader().use { it.readText() }.split(",")
+        } catch (e: Exception) {
+            listOf("Flipping...")
+        }
+    }
+    var flipText: String by remember { mutableStateOf(flippingTexts.random()) }
     CoinFlipperTheme {
         AppScaffold {
             val listState = rememberTransformingLazyColumnState()
             val transformationSpec = rememberTransformationSpec()
             ScreenScaffold(
                 scrollState = listState,
-            ) { contentPadding -> // ScreenScaffold provides default padding; adjust as needed
+            ) { contentPadding ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -90,7 +94,10 @@ fun WearApp(greetingName: String) {
                     if (!isFlipping) {
                         Button(
                             modifier = Modifier.size(100.dp),
-                            onClick = { isFlipping = !isFlipping },
+                            onClick = {
+                                flipText = flippingTexts.random()
+                                isFlipping = true
+                            },
                             colors = ButtonDefaults.buttonColors(),
                             content = {
                                 Box(
@@ -108,20 +115,33 @@ fun WearApp(greetingName: String) {
                             shape = ShapeDefaults.ExtraLarge,
                         )
                     } else {
-                        var currentProgress = 0f;
+                        val currentProgress = 0f
                         var progress by remember { mutableFloatStateOf(currentProgress) }
                         val animatedProgress = animateFloatAsState(
                             targetValue = progress,
+                            label = "flipProgress"
                         ).value
 
-                        CircularProgressIndicator(
-                            colors = ProgressIndicatorDefaults.colors(
-                                indicatorColor = MaterialTheme.colorScheme.primary,
-                                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = .3f),
-                            ),
-                            progress = { animatedProgress },
-                            strokeWidth = CircularProgressIndicatorDefaults.largeStrokeWidth,
-                        )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.fillMaxSize(),
+                                colors = ProgressIndicatorDefaults.colors(
+                                    indicatorColor = MaterialTheme.colorScheme.primary,
+                                    trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = .3f),
+                                ),
+                                progress = { animatedProgress },
+                                strokeWidth = CircularProgressIndicatorDefaults.largeStrokeWidth,
+                            )
+                            Text(
+                                text = flipText,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
                     }
                 }
             }
